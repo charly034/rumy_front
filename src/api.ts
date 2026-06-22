@@ -5,9 +5,14 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   })
-  const json = await res.json()
-  if (!res.ok) throw new Error(json.message ?? 'Error en la solicitud')
-  return json.data ?? json
+  let json: Record<string, unknown>
+  try {
+    json = await res.json()
+  } catch {
+    throw new Error(res.ok ? 'Respuesta inválida del servidor' : `Error ${res.status} — no se pudo conectar con la API`)
+  }
+  if (!res.ok) throw new Error(String(json.message ?? `Error ${res.status}`))
+  return (json.data ?? json) as T
 }
 
 // ── Jugadores ──────────────────────────────────────────────

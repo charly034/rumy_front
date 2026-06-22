@@ -8,9 +8,24 @@ const medal = (pos: number) => {
   return `${pos}°`
 }
 
+function SkeletonRow() {
+  return (
+    <div className="tabla-row" style={{ gap: 12 }}>
+      <div className="skel" style={{ width: 36, height: 36, borderRadius: 8 }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skel skel-title" />
+        <div className="skel" style={{ height: 4, width: '100%', borderRadius: 2 }} />
+        <div className="skel skel-sub" />
+      </div>
+      <div className="skel" style={{ width: 80, height: 28, borderRadius: 20 }} />
+      <div className="skel" style={{ width: 40, height: 28, borderRadius: 6 }} />
+    </div>
+  )
+}
+
 export default function TablaGeneralPage() {
   const [tabla, setTabla] = useState<TablaEntry[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const load = async () => {
@@ -19,7 +34,7 @@ export default function TablaGeneralPage() {
     try {
       setTabla(await tablaGeneral.get())
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error')
+      setError(e instanceof Error ? e.message : 'Error al cargar la tabla')
     } finally {
       setLoading(false)
     }
@@ -33,7 +48,7 @@ export default function TablaGeneralPage() {
     <div>
       <div className="page-header">
         <h2>Tabla General</h2>
-        <button className="btn-secondary" onClick={load}>↻ Actualizar</button>
+        <button className="btn-secondary" onClick={load} aria-label="Actualizar tabla">↻ Actualizar</button>
       </div>
 
       <div className="puntos-legend">
@@ -42,11 +57,28 @@ export default function TablaGeneralPage() {
         <span className="badge badge-last">Último −1 pt</span>
       </div>
 
-      {error && <p className="error">{error}</p>}
-      {loading && <p className="muted">Cargando…</p>}
-      {!loading && tabla.length === 0 && <p className="muted">Sin datos todavía. ¡Registrá partidas para ver la tabla!</p>}
+      {error && (
+        <div className="error">
+          {error}
+          <button className="btn-small" style={{ marginLeft: 12 }} onClick={load}>Reintentar</button>
+        </div>
+      )}
 
-      {tabla.length > 0 && (
+      {loading && (
+        <div className="tabla-general">
+          {[1, 2, 3, 4].map(i => <SkeletonRow key={i} />)}
+        </div>
+      )}
+
+      {!loading && !error && tabla.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🏆</div>
+          <p className="empty-title">Todavía no hay datos</p>
+          <p className="empty-sub">Registrá partidas para ver quién está ganando la temporada.</p>
+        </div>
+      )}
+
+      {!loading && tabla.length > 0 && (
         <div className="tabla-general">
           {tabla.map((entry, i) => (
             <div key={entry.id} className={`tabla-row ${i === 0 ? 'tabla-row-leader' : ''}`}>
@@ -57,10 +89,10 @@ export default function TablaGeneralPage() {
                   {entry.nombre}
                   {entry.apodo && <span className="tabla-apodo"> @{entry.apodo}</span>}
                 </div>
-                <div className="tabla-bar-wrap">
+                <div className="tabla-bar-wrap" title={`${entry.puntos_generales} pts generales`}>
                   <div
                     className="tabla-bar"
-                    style={{ width: `${Math.max((entry.puntos_generales / maxPts) * 100, 2)}%` }}
+                    style={{ width: `${maxPts > 0 ? Math.max((entry.puntos_generales / maxPts) * 100, entry.puntos_generales > 0 ? 2 : 0) : 0}%` }}
                   />
                 </div>
                 <div className="tabla-puntos-partida">
